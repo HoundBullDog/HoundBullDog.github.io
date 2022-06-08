@@ -1,301 +1,225 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>HTML5 Tetris</title>
-        <meta charset="UTF-8">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN"
+"http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<title>HTML5 Tetris</title>
+<script type="text/javscript" src="base.js"></script>
+<script type="text/javascript" src="jquery.min.js"></script>
+<script type="text/javascript" src="jquery.hotkeys.js"></script>
+<script type="text/javascript" src="key_status.js"></script>
+</head>
+<body>
+<canvas id="myCanvas" width="400" height="400" style="border:1px solid #c3c3c3;">
+Your browser does not support the canvas element.
+</canvas>
+<div id="points" style="font-size:20pt"></div>
+<script type="text/javascript">
+var c=document.getElementById("myCanvas");
+var ctx=c.getContext("2d");
+var FPS = 60;
 
-        <link href='http://fonts.googleapis.com/css?family=Lemon|Gochi+Hand' rel='stylesheet' type='text/css'>
+var CANVAS_WIDTH = 400;
+var CANVAS_HEIGHT = 400;
 
-        <link id="fav" rel="shortcut icon" type="image/png" href="http://www.xarg.org/favicon.ico" />
-        {literal}
-        <style>
+var objectColor = "rgb(100,200,200)";
+ctx.fillStyle = objectColor;
 
-            a {
-                color: #000;
-                text-decoration: none;
-                font-family:Arial;
-            }
+var objectExists = 0;
+var xpos = 0;
+var ypos  = 0;
+var otype = 0;
+var speed = 1;
+var cycle; // the param to keep track of the cycle
 
-            a:hover {
-                text-decoration: underline;
-            }
+var topcanvaspos = 0;
+var running = 0;
+var points = 0;
 
-            html{
-                overflow:hidden;
-            }
+/*
+1. square ( 50 by 50)
+2. rectangle ( 75 by 25)
+*/
 
-            body {
-                background: #def;
-            }
+var height = [50, 25];
+var width = [50, 75];
 
-            #OfCourseItsMe {
-                font-family:Arial;
-                font-size: 11px;
-                text-decoration:none;
-                color: #78a;
-            }
+function initObject()
+{
+	keydown.down = false;
+	xpos = 25*Math.floor(Math.random()*((CANVAS_WIDTH-width[otype])/25 + 1));
+	ypos  = 0;
+	otype = 0;//Math.floor(Math.random()*5);
+	objectExists = 1;
+}
 
-            #OfCourseItsMe a {
-                font-weight: bold;
-            }
+function checkForEmptiness(x, y, w, h)
+{
+	var i, j;
+	for( i=x;i<x+w;i++) {
+		for(j=y;j<y+h;j++)
+		{
+			var p = ctx.getImageData(i, j, 1, 1).data; 
+			if((p[0] != 100) && (p[1] != 200) && (p[2] != 200))
+				return false;
+		}
+	}
+	return true;
+}
 
-            #canvas {
-                border: 10px solid #78a;
-                background: #becfea;
-                position:absolute;
-                z-index:0;
-                left: 70px;
-            }
+function checkRegion(x, y, w, h)
+{
+	//alert("checking region "+x+" "+y+" "+w+" "+h);
+	var i, j;
+	for( i=x;i<x+w;i++) {
+		for(j=y;j<y+h;j++)
+		{
+			var p = ctx.getImageData(i, j, 1, 1).data; 
+			//var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+			if((p[0] == 100) && (p[1] == 200) && (p[2] == 200))
+				return false;
+		}
+	}
+	return true;
+}
 
-            #preview {
-                position: absolute;
-                left: 550px;
-                border: 10px solid #78a;
-                background: #becfea;
-                top: 20px;
-                z-index: 1;
-            }
+function checkObject(type, x, y, dir)
+{
+	//alert("checking");
+	if(y+height[type] >=  CANVAS_HEIGHT)
+		return false;
+	if(type == 0){
+		if(dir=="left" && !checkRegion(x-25,y,25,height[type]))	 
+			 return false;
+		if(dir=="right" && !checkRegion(x+width[type],y,25,height[type]))	 
+			 return false;
+		if(dir=="down" && !checkRegion(x,y+height[type],width[type],speed))	 
+			 return false;
+		//else alert("true");
+	}
+	return true;
+}
 
-            #highscore {
-                background: #78a;
-                position:absolute;
-                z-index: 100;
+function clearObject(type, x, y)
+{
+	ctx.save();
+	ctx.setTransform(1,0,0,1,0,0);
+	ctx.clearRect(x,y, 50, 50);
+	ctx.restore();
+}
 
-                font-family: 'Gochi Hand', sans-serif;
-                font-size: 30px;
-                color: #fff;
+function drawObject(type, x, y)
+{
+	ctx.fillRect(x,y, 50, 50);
+	//alert("drawn");
+}
 
-                width:400px;
-                left: 70px;
-                top: 300px;
-                text-align: center;
-                padding: 30px 0px;
-                display:none;
-            }
+function hideRows()
+{
+	for(i=topcanvaspos;i<CANVAS_HEIGHT && topcanvaspos<CANVAS_HEIGHT;i++)
+	{	
+		if( checkForEmptiness(0,i, CANVAS_WIDTH, 1))		{
+			// copying the rectangle below
+			if( i !=  topcanvaspos)
+			{
+			var imagedata = ctx.getImageData(0, topcanvaspos, CANVAS_WIDTH, i-topcanvaspos);
+			topcanvaspos++;
+			ctx.putImageData(imagedata, 0, topcanvaspos);
+			}
+			else
+			{
+				topcanvaspos++;
+			}
+			
+			// deleting the top most layer
+			ctx.clearRect(0,topcanvaspos-1, CANVAS_WIDTH, 1);	
+			points+=10;
+			$('#points').text(points);
+		}
+	}	
+//	alert("done");
+}
+function clearCanvas()
+{
+	ctx.save();
+	ctx.setTransform(1,0,0,1,0,0);
+	ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
+	ctx.restore();
+}
 
-            #nick {
-                border: 0px none;
-                background: #78a;
-                color:white;
-                font-family: inherit;
-                font-size: 20px;
-            }
+function update()
+{
+	//alert("updating");
+	
+	if(!objectExists)
+		initObject();
+	else {
+		var tempx = xpos;
+		var tempy = ypos;
+		
+		if (keydown.left && xpos>=25) { //for moving left
+			if(checkObject(otype, xpos, ypos, "left")) {
+			xpos -= 25;
+			//clearObject(otype, xpos+2, ypos);	
+			}
+		}
+		else if (keydown.right && xpos<(CANVAS_WIDTH-width[otype])) {  // for moving right
+			if(checkObject(otype, xpos, ypos, "right")) {
+			xpos += 25;
+			//clearObject(otype, xpos-2, ypos);	
+			}
+		}
+		
+		if(keydown.down) FPS = 200;
+		else FPS = 30;
+			//alert(temp);
+		if(checkObject(otype, xpos, ypos,"down")) {			
+		ypos+=speed; 			
+		clearObject(otype, tempx, tempy);	
+		}
+		else if( ypos < 5)
+		{
+			//	clearTimeout(cycle);
+			running = 0;
+			$('#points').html("You got: "+points+ " points");
+			alert("game over");
+			
+		}
+		else  
+		{
+		topcanvaspos = ypos;
+		objectExists = 0; 
+		}
+	 }
+}
 
-            #submit {
-                cursor:pointer;
-                font-family: inherit;
-                display:block;
-            }
-
-            #favicon {
-                display:none;
-            }
-
-            #edit, #best {
-                width: 400px;
-                position:absolute;
-                right: -442px;
-                top: 20px;
-                z-index: 2;
-                font-family: Arial;
-                font-size:14px;
-                border: 10px solid #000;
-                background: #fff;
-            }
-
-            #edit table {
-                border-collapse: collapse;
-                background: #becfea;
-                float:left;
-                margin: 5px;
-            }
-
-            #edit td {
-                width: 10px;
-                height: 10px;
-                background: #000;
-                margin: 2px;
-                border: 1px solid #fff;
-            }
-
-            #open, #open2 {
-                position:absolute;
-                left: -43px;
-                top: 20px;
-                padding:3px 10px;
-                background: #000;
-                color:white;
-                transform: rotate(90deg);
-                -ms-transform: rotate(90deg);
-                -webkit-transform: rotate(90deg);
-            }
-
-            #best table {
-                margin-top: 20px;
-                margin-left: 50px;
-                margin-bottom: 20px;
-            }
-
-            #open2 {
-                top: 90px;
-                left: -49px;
-            }
-
-            #best td {
-                padding: 5px;
-            }
-
-            h1 {
-                position:absolute;
-                left: -200px;
-                top: 200px;
-                margin:0px;
-                padding:0px;
-                font-size: 60px;
-                font-family: 'Lemon', cursive;
-                color: white;
-                text-shadow: -3px 3px #78a;
-
-                transform: rotate(270deg);
-                -ms-transform: rotate(270deg); /* IE 9 */
-                -webkit-transform: rotate(270deg); /* Safari and Chrome */
-            }
-
-            #stat {
-                font-family: 'Gochi Hand', sans-serif;
-                color: white;
-                text-shadow: 2px 2px #78a;
-                font-weight: bold;
-                font-size: 35px;
-            }
-
-            #xarg > img {
-                position:fixed;
-                right:20px;
-                bottom:20px;
-                z-index:1000;
-                border:0;
-            }
-
-            #restart {
-                position:absolute; 
-                z-index: 100; 
-                left: 170px;
-                top: 330px;
-                font-size: 30px;
-                font-family: 'Gochi Hand', sans-serif;
-                display:none;
-            }
-
-
-            #home {
-                display:none;
-                color: #c33;
-            }
-            
-            #slinks a {
-                color: #c00;
-            }
-
-        </style>
-        {/literal}
-    </head>
-    <body>
-
-        <h1>HTML5 TETRIS</h1>
-
-        <canvas id="canvas"></canvas>
-        <canvas id="preview"></canvas>
-        <canvas id="favicon"></canvas>
-
-        <div id="edit">
-            <div id="open">Edit</div>
-
-            <div><input id="tilesX" type="range" min="5" max="70" value="21" onchange="textBoxEdit(this)"> X <input id="tilesY" type="range" min="5" max="70" value="35" onchange="textBoxEdit(this)"> Tiles</div>
-            <div><input id="tilesSize" type="range" min="5" max="40" value="18" onchange="textBoxEdit(this)"> Tile-Size</div>
-            <div><input id="border" type="range" min="0" max="15" value="2" onchange="textBoxEdit(this)"> Border</div>
-            <div><input id="speedDelay" step="10" type="range" min="40" max="1000" value="200" onchange="textBoxEdit(this)"> Speed Delay</div>
-
-            <div><input type="checkbox" value="1" id="Cpause" onchange="textBoxEdit(this)"> Pause (p)</div>
-            <div><input type="checkbox" value="1" id="Cauto" onchange="textBoxEdit(this)"> Autopilot (a)</div>
-            <div><input type="checkbox" value="1" id="Cshadow" onchange="textBoxEdit(this)" checked="checked"> Shadow (s)</div>
-            <div><input type="checkbox" value="1" id="Cpreview" onchange="textBoxEdit(this)" checked="checked"> Preview (w)</div>
-            <div><input type="checkbox" value="1" id="Cfavicon" onchange="textBoxEdit(this)" checked="checked"> Favicon (f)</div>
-            <div><input type="checkbox" value="1" id="Cgamepad" onchange="textBoxEdit(this)"> Gamepad</div>
-
-            <div>Active shadow and preview reduces the score per tile!</div>
-
-            <div id="tables">
-
-            </div>
-
-            <div id="slinks">
-                Share Custom Tetris<br>
-                <a id="sFB" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fwww.xarg.org%2Fproject%2Ftetris%2F">FB</a> -
-                <a id="sTW" href="http://twitter.com/share?text=HTML5%20Tetris%20made%20by%20%40roberteisele&amp;url=http%3A%2F%2Fwww.xarg.org%2Fproject%2Ftetris%2F">TW</a> - 
-                <a id="sGP" href="https://plus.google.com/share?url=http%3A%2F%2Fwww.xarg.org%2Fproject%2Ftetris%2F">G+</a>
-            </div>
-
-        </div>
-
-        <div id="best">
-            <div id="open2">Score</div>
-
-            <table>
-
-                <tr>
-                    <th>Rank</th>
-                    <th>Name</th>
-                    <th>Score</th>
-                    <th>Lines</th>
-                </tr>
-                {local:$i}
-                {php}$i=0;{/php}
-                {fores $score as $s}
-                <tr>
-                    <td>#{!++$i}</td>
-                    <td>{$s.TName}</td>
-                    <td>{!$s.TScore}</td>
-                    <td>{!$s.TLine}</td>
-                </tr>
-                {/fores}
-            </table>
-
-        </div>
-
-        <div id="highscore">
-
-            <div>Enter your name</div>
-
-            <input type="text" id="nick" placeholder="Your name">
-
-            <span id="submit">go</span>
-
-        </div>
-
-        <div id="restart">
-            Click to restart
-        </div>
-
-        <div style="position:absolute;left: 560px;top: 250px;">
-
-            <div style="height: 100px;">
-                <a id="home" href="http://www.xarg.org/project/tetris/">Highscore participation</a>
-            </div>
-            <div id="stat">
-                Score: <span id="score">0</span><br>
-                Lines: <span id="lines">0</span><br>
-            </div>
+function draw()
+{
+	//redrawing the canvas
+	if(objectExists)
+	{		
+		drawObject(otype, xpos, ypos);
+	}
+	else
+		hideRows();
+}
 
 
-            <span id="OfCourseItsMe">by <a href="http://www.xarg.org/">Robert Eisele</a> (<a href="https://twitter.com/RobertEisele">Twitter</a>)<br>Source &amp; Description (<a href="https://github.com/infusion/HTML5-Tetris">Github</a>)</span>
+function init() {
+	if(running == 0)
+	{
+		running = 1;
+		ctx.clearRect(0,0,CANVAS_WIDTH, CANVAS_HEIGHT);
+		points = 0;
+		$('#points').html("");
+	}
+	update();
+	draw();
+	if(running)
+	setTimeout(init, 1000/FPS);
+}
 
-        </div>
-
-
-        <script src="/download/tetris.js"></script>
-
-        <a id="xarg" href="http://www.xarg.org/projects/"><img width="59" height="61" src="http://www.xarg.org/image/xarg-logo.png" alt="xarg open projects" /></a>
-
-    </body>
+</script>
+<button onclick='init()'>start game</button>
+</body>
 </html>
