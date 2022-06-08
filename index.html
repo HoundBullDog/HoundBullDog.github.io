@@ -1,66 +1,47 @@
 <!DOCTYPE html>
-<html lang='zh'>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>I am a bird, lalala</title>
-    <link href="ui/bird.css" media="screen" rel="stylesheet" type="text/css" />
-    <link href="ui/document.css" media="screen" rel="stylesheet" type="text/css" />
-  </head>
-  <body>
-    <div class='ct-p1'>
-      <img class='avatar' src='http://tp2.sinaimg.cn/1418521581/180/5639678895/1' alt='me' />
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>HTML5 Games</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <header>
+            <h1 id="title">Bounce</h1>
+            <p id="expand">Expand for more games.</p>
+            <p id="select">Select a game.</p>
+            <ul id="nav">
+                <li><a href="#bounce" data-game="bounce" class="selected">Bounce</a></li>
+                <li><a href="#snake" data-game="snake">Snake</a></li>
+                <li><a href="#tetris" data-game="tetris">Tetris</a></li>
+                <li><a href="#defender" data-game="defender">Defender</a></li>
+                <li><a href="#pacman" data-game="pacman">Pacman</a></li>
+                <li><a href="#puzzle" data-game="puzzle">Puzzle</a></li>
+                <li><a href="#spider" data-game="spider">Spider</a></li>
+            </ul>
+        </header>
+        <iframe id="machine"></iframe>
 
-      <div class='developer'>
-        <span>Developer：</span>
-        <a href='http://github.com/ben7th' target='_blank'>Ben7th</a>
-        <br/>
+        <script>
+            function play(game) {
+                "use strict";
+                document.querySelector("#nav li a.selected").className = "";
+                document.querySelector(`#nav li a[data-game=${game}]`).className = "selected";
+                document.getElementById("title").innerHTML = game;
+                document.getElementById("machine").src = `${game}/index.html`;
+                document.title = "HTML5 Games: " + game.substring(0, 1).toUpperCase() + game.substring(1);
+            }
 
-        <span>GDG：</span>
-        <a href='http://weibo.com/ben7th' target='_blank'>weibo.com/ben7th</a>
-      </div>
-
-      <hr/>
-
-      <div class='stat'>
-        <span>统计：</span><br/>
-        <div class='lines'>
-          <span style='color:yellow;'>JavaScript-Coffee:</span>
-          <span>475行</span><br/>
-
-          <span style='color:yellow;'>SCSS:</span>
-          <span>380行</span><br/>
-
-          <span style='color:yellow;'>HTML:</span>
-          <span>0行</span><br/>
-
-          <span style='color:yellow;'>PNG图片:</span>
-          <span>15张</span><br/>
-        </div>
-        <br/>
-
-        <span>源代码：</span><br/>
-        <a href='https://github.com/ben7th/flappy-html5-bird' target='_blank'>github.com/ben7th/flappy-html5-bird</a><br/>
-
-        <span>最后更新：2014.02.17</span>
-      </div>
-      <br/>
-
-      <div class='bshare'>
-        <div class="bshare-custom icon-medium"><div class="bsPromo bsPromo2"></div><a title="分享到新浪微博" class="bshare-sinaminiblog"></a><a title="分享到腾讯微博" class="bshare-qqmb" href="javascript:void(0);"></a><a title="分享到人人网" class="bshare-renren"></a><a title="分享到豆瓣" class="bshare-douban" href="javascript:void(0);"></a><a title="分享到有道笔记" class="bshare-youdaonote" href="javascript:void(0);"></a><a title="更多平台" class="bshare-more bshare-more-icon more-style-addthis"></a><span class="BSHARE_COUNT bshare-share-count" style="float: none;">24.6K</span></div><script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/buttonLite.js#style=-1&amp;uuid=57bc5d98-618c-410c-83cd-299d859bba76&amp;pophcol=2&amp;lang=zh"></script><script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/bshareC0.js"></script>
-      </div>
-    </div>
-
-    <script type="text/javascript" src="ui/lib/jquery-2.1.0.min.js"></script>
-    <script type="text/javascript" src="ui/lib/coffee-script.js"></script>
-    <script type="text/coffeescript" src="ui/bird.js.coffee"></script>
-
-    <script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/buttonLite.js#uuid=a3b1e297-3f5c-4229-bb55-e938e9072078&style=-1"></script>
-    <script>
-      bShare.addEntry({
-        title: '我是一只小小鸟 - Flappy Bird HTML5 版',
-        summary: '原版神似度高达 90%，小伙伴们都来试试吧。记得用 Chrome / Firefox 访问噢 ~',
-        pic: 'http://ben7th.github.io/flappy-html5-bird/cover.png'
-      })
-    </script>
-  </body>
+            window.addEventListener("load", () => {
+                "use strict";
+                const header = document.querySelector("header");
+                play(location.hash.substring(1) || "bounce");
+                document.querySelector("#nav").addEventListener("click", (e) => {
+                    if (e.target.dataset.game) {
+                        play(e.target.dataset.game);
+                    }
+                });
+            }, false);
+        </script>
+    </body>
 </html>
